@@ -954,7 +954,17 @@ ScopedAStatus RadioSim::iccTransmitApduLogicalChannel(
         if (!response || response->isParseError()) {
             status = FAILURE(RadioError::INTERNAL_ERR);
         } else if (const CGLA* cgla = response->get_if<CGLA>()) {
-            iccIoResult.simResponse = cgla->response;
+            if (cgla->response.size() >= 4) {
+                const size_t size4 = cgla->response.size() - 4;
+                if (2 == ::sscanf(&cgla->response[size4], "%02x%02x",
+                                  &iccIoResult.sw1, &iccIoResult.sw2)) {
+                    iccIoResult.simResponse = cgla->response.substr(0, size4);
+                } else {
+                    status = FAILURE(RadioError::GENERIC_FAILURE);
+                }
+            } else {
+                status = FAILURE(RadioError::GENERIC_FAILURE);
+            }
         } else if (const CmeError* cmeError = response->get_if<CmeError>()) {
             status = cmeError->getErrorAndLog(FAILURE_DEBUG_PREFIX, kFunc, __LINE__);
         } else {
