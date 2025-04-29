@@ -871,17 +871,17 @@ ScopedAStatus RadioSim::iccTransmitApduBasicChannel(const int32_t serial,
         if (message.data.empty()) {
             if (message.p3 < 0) {
                 request = std::format(
-                        "AT+CSIM={0:d},{1:02X}{2:02X}{3:02X}{4:02X}", 8,
+                        "AT+CSIM={0:d},{1:02x}{2:02x}{3:02x}{4:02x}", 8,
                         message.cla, message.instruction, message.p1, message.p2);
             } else {
                 request = std::format(
-                        "AT+CSIM={0:d},{1:02X}{2:02X}{3:02X}{4:02X}{5:02X}", 10,
+                        "AT+CSIM={0:d},{1:02x}{2:02x}{3:02x}{4:02x}{5:02x}", 10,
                         message.cla, message.instruction, message.p1, message.p2, message.p3);
             }
         } else {
             const size_t dataSize = 10 + message.data.size();
             request = std::format(
-                    "AT+CSIM={0:d},{1:02X}{2:02X}{3:02X}{4:02X}{5:02X}{6:s}",
+                    "AT+CSIM={0:d},{1:02x}{2:02x}{3:02x}{4:02x}{5:02x}{6:s}",
                     dataSize, message.cla, message.instruction, message.p1,
                     message.p2, message.p3, message.data);
         }
@@ -939,7 +939,7 @@ ScopedAStatus RadioSim::iccTransmitApduLogicalChannel(
 
         const size_t dataSize = 10 + message.data.size();
         const std::string request = std::format(
-                "AT+CGLA={0:d},{1:d},{2:02X}{3:02X}{4:02X}{5:02X}{6:02X}{7:s}",
+                "AT+CGLA={0:d},{1:d},{2:02x}{3:02x}{4:02x}{5:02x}{6:02x}{7:s}",
                 message.sessionId, dataSize,
                 message.cla, message.instruction, message.p1,
                 message.p2, message.p3, message.data);
