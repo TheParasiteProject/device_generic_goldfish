@@ -717,6 +717,9 @@ ScopedAStatus RadioSim::iccCloseLogicalChannelWithSessionInfo(const int32_t seri
             status = FAILURE(RadioError::INTERNAL_ERR);
         } else if (const CmeError* cmeError = response->get_if<CmeError>()) {
             status = cmeError->getErrorAndLog(FAILURE_DEBUG_PREFIX, kFunc, __LINE__);
+            if (status == RadioError::NO_SUCH_ELEMENT) {
+                status = RadioError::INVALID_ARGUMENTS;
+            }
         } else if (!response->get_if<CCHC>()) {
             response->unexpected(FAILURE_DEBUG_PREFIX, kFunc);
         }
