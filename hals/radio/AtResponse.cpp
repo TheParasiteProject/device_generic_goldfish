@@ -177,6 +177,7 @@ AtResponse::ParseResult AtResponse::parse(const std::string_view str) {
         { CMD(CGCONTRDP),   false },
         { CMD(CLCK),        false },
         { CMD(CSIM),        false },
+        { CMD(CGLA),        false },
         { CMD(CCHC),        false },
         { CMD(CLIP),        false },
         { CMD(CLIR),        false },
