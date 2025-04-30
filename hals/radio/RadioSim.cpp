@@ -933,17 +933,17 @@ ScopedAStatus RadioSim::iccTransmitApduBasicChannel(const int32_t serial,
         if (message.data.empty()) {
             if (message.p3 < 0) {
                 request = std::format(
-                        "AT+CSIM={0:d},{1:02x}{2:02x}{3:02x}{4:02x}", 8,
+                        "AT+CSIM={0:d},\"{1:02x}{2:02x}{3:02x}{4:02x}\"", 8,
                         message.cla, message.instruction, message.p1, message.p2);
             } else {
                 request = std::format(
-                        "AT+CSIM={0:d},{1:02x}{2:02x}{3:02x}{4:02x}{5:02x}", 10,
+                        "AT+CSIM={0:d},\"{1:02x}{2:02x}{3:02x}{4:02x}{5:02x}\"", 10,
                         message.cla, message.instruction, message.p1, message.p2, message.p3);
             }
         } else {
             const size_t dataSize = 10 + message.data.size();
             request = std::format(
-                    "AT+CSIM={0:d},{1:02x}{2:02x}{3:02x}{4:02x}{5:02x}{6:s}",
+                    "AT+CSIM={0:d},\"{1:02x}{2:02x}{3:02x}{4:02x}{5:02x}{6:s}\"",
                     dataSize, message.cla, message.instruction, message.p1,
                     message.p2, message.p3, message.data);
         }
