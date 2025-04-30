@@ -285,8 +285,7 @@ std::optional<std::vector<uint8_t>> getSelectResponse(const AtChannel::RequestPi
         }
 
         std::vector<uint8_t> selectResponse;
-        if (!hex2bin(std::string_view(cgla->response).substr(0, size4),
-                     &selectResponse)) {
+        if (!hex2bin(cgla->response, &selectResponse)) {
             return FAILURE(std::nullopt);
         }
 
