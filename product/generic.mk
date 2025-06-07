@@ -198,7 +198,6 @@ endif
 
 ifneq ($(EMULATOR_VENDOR_NO_CAMERA),true)
 PRODUCT_SOONG_NAMESPACES += \
-    hardware/google/camera \
     hardware/google/camera/devices/EmulatedCamera \
 
 ifneq ($(filter %_minigbm, $(TARGET_PRODUCT)),)
@@ -342,3 +341,5 @@ PRODUCT_COPY_FILES += \
 
 # Goldfish uses 6.X kernels.
 PRODUCT_ENABLE_UFFD_GC := true
+
+PRODUCT_ENFORCE_SELINUX_TREBLE_LABELING := true
