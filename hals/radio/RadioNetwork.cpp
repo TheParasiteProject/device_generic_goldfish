@@ -1322,6 +1322,8 @@ void RadioNetwork::handleUnsolicited(const AtResponse::CFUN& cfun) {
         changed = mCreg.state != network::RegState::NOT_REG_MT_NOT_SEARCHING_OP;
         mCreg.state = network::RegState::NOT_REG_MT_NOT_SEARCHING_OP;
         mCgreg.state = network::RegState::NOT_REG_MT_NOT_SEARCHING_OP;
+    } else {
+        changed = false;
     }
 
     if (changed && mRadioNetworkIndication) {
