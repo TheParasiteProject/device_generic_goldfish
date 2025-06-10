@@ -60,17 +60,13 @@ using network::RegStateResult;
 using network::SignalStrength;
 
 namespace {
-// somehow RadioConst.h does not contain these values
-constexpr int32_t kRadioConst_VALUE_UNAVAILABLE = 0x7FFFFFFF;  // b/382554555
-constexpr uint8_t kRadioConst_VALUE_UNAVAILABLE_BYTE = 0xFFU;
-
 CellIdentityCdma makeCellIdentityCdma(OperatorInfo operatorInfo) {
     CellIdentityCdma result = {
-        .networkId = kRadioConst_VALUE_UNAVAILABLE,
-        .systemId = kRadioConst_VALUE_UNAVAILABLE,
-        .baseStationId = kRadioConst_VALUE_UNAVAILABLE,
-        .longitude = kRadioConst_VALUE_UNAVAILABLE,
-        .latitude = kRadioConst_VALUE_UNAVAILABLE,
+        .networkId = RadioConst::VALUE_UNAVAILABLE,
+        .systemId = RadioConst::VALUE_UNAVAILABLE,
+        .baseStationId = RadioConst::VALUE_UNAVAILABLE,
+        .longitude = RadioConst::VALUE_UNAVAILABLE,
+        .latitude = RadioConst::VALUE_UNAVAILABLE,
     };
 
     result.operatorNames = std::move(operatorInfo);
@@ -94,7 +90,7 @@ CellIdentityGsm makeCellIdentityGsm(OperatorInfo operatorInfo,
         .lac = areaCode,
         .cid = cellId,
         .arfcn = 42,
-        .bsic = 127, // kRadioConst_VALUE_UNAVAILABLE_BYTE, b/382555063
+        .bsic = RadioConst::VALUE_UNAVAILABLE_BYTE,
     };
 
     result.additionalPlmns.push_back(operatorInfo.operatorNumeric);
@@ -148,7 +144,7 @@ CellIdentityTdscdma makeCellIdentityTdscdma(OperatorInfo operatorInfo,
         .mnc = getMnc(operatorInfo),
         .lac = areaCode,
         .cid = cellId,
-        .cpid = kRadioConst_VALUE_UNAVAILABLE,
+        .cpid = RadioConst::VALUE_UNAVAILABLE,
         .uarfcn = 777,
     };
 
@@ -1304,6 +1300,27 @@ ScopedAStatus RadioNetwork::isSecurityAlgorithmsUpdatedEnabled(const int32_t ser
     return ScopedAStatus::ok();
 }
 
+ScopedAStatus RadioNetwork::setSatellitePlmn(int32_t serial, const std::vector<std::string>& /*carrierPlmnArray*/,
+                                             const std::vector<std::string>& /*allSatellitePlmnArray*/) {
+    NOT_NULL(mRadioNetworkResponse)->setSatellitePlmnResponse(
+        makeRadioResponseInfoUnsupported(
+            serial, FAILURE_DEBUG_PREFIX, __func__));
+    return ScopedAStatus::ok();
+}
+
+ScopedAStatus RadioNetwork::setSatelliteEnabledForCarrier(int32_t serial, bool /*satelliteEnabled*/) {
+    NOT_NULL(mRadioNetworkResponse)->setSatelliteEnabledForCarrierResponse(
+        makeRadioResponseInfoUnsupported(
+            serial, FAILURE_DEBUG_PREFIX, __func__));
+    return ScopedAStatus::ok();
+}
+
+ScopedAStatus RadioNetwork::isSatelliteEnabledForCarrier(int32_t serial) {
+    NOT_NULL(mRadioNetworkResponse)->isSatelliteEnabledForCarrierResponse(
+        makeRadioResponseInfo(serial), false);
+    return ScopedAStatus::ok();
+}
+
 ScopedAStatus RadioNetwork::responseAcknowledgement() {
     return ScopedAStatus::ok();
 }
@@ -1322,6 +1339,8 @@ void RadioNetwork::handleUnsolicited(const AtResponse::CFUN& cfun) {
         changed = mCreg.state != network::RegState::NOT_REG_MT_NOT_SEARCHING_OP;
         mCreg.state = network::RegState::NOT_REG_MT_NOT_SEARCHING_OP;
         mCgreg.state = network::RegState::NOT_REG_MT_NOT_SEARCHING_OP;
+    } else {
+        changed = false;
     }
 
     if (changed && mRadioNetworkIndication) {
