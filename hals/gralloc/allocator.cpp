@@ -98,6 +98,8 @@ bool needGpuBuffer(const uint64_t usage) {
                     | toUsage64(BufferUsage::GPU_RENDER_TARGET)
                     | toUsage64(BufferUsage::COMPOSER_OVERLAY)
                     | toUsage64(BufferUsage::COMPOSER_CLIENT_TARGET)
+                    | toUsage64(BufferUsage::GPU_MIPMAP_COMPLETE)
+                    | toUsage64(BufferUsage::GPU_CUBE_MAP)
                     | toUsage64(BufferUsage::GPU_DATA_BUFFER));
 }
 
@@ -682,6 +684,11 @@ private:
     static bool validateUsage(const BufferUsage usage) {
         static constexpr uint64_t kReservedUsage =
             (1U << 10) | (1U << 13) | (1U << 19) | (1U << 21);
+
+        // GPU mipmap usages are not supported
+        if ((toUsage64(usage) & toUsage64(BufferUsage::GPU_MIPMAP_COMPLETE)) != 0) {
+            return false;
+        }
 
         return 0 == (toUsage64(usage) & kReservedUsage);
     }
