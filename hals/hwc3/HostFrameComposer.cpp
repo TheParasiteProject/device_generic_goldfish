@@ -476,6 +476,7 @@ HWC3::Error HostFrameComposer::presentDisplay(
     Display* display, ::android::base::unique_fd* outDisplayFence,
     std::unordered_map<int64_t, ::android::base::unique_fd>* outLayerFences) {
     const uint32_t displayId = static_cast<uint32_t>(display->getId());
+    DEBUG_LOG("%s display:%" PRIu32, __FUNCTION__, displayId);
     auto displayInfoIt = mDisplayInfos.find(displayId);
     if (displayInfoIt == mDisplayInfos.end()) {
         ALOGE("%s: failed to find display buffers for display:%" PRIu32, __FUNCTION__, displayId);
@@ -503,6 +504,27 @@ HWC3::Error HostFrameComposer::presentDisplay(
 
     auto compositionResult = displayInfo.swapchain->getNextImage();
     compositionResult->wait();
+
+    // Virtio-gpu usage is proxied by minigbm
+    const bool isVirtioGPU = mIsMinigbm;
+
+    // Virtio-gpu path doesn't support host side display color transform
+    const bool hostSupportsDisplayColorTransform = !isVirtioGPU;
+    if (display->hasColorTransform()) {
+        std::array<float, 16> colorTransform = display->getColorTransform();
+        DEBUG_LOG("%s: Color Transform: %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f",
+                  __FUNCTION__,
+                  colorTransform[0], colorTransform[1], colorTransform[2], colorTransform[3],
+                  colorTransform[4], colorTransform[5], colorTransform[6], colorTransform[7],
+                  colorTransform[8], colorTransform[9], colorTransform[10], colorTransform[11],
+                  colorTransform[12], colorTransform[13], colorTransform[14], colorTransform[15]);
+
+        if (hostSupportsDisplayColorTransform) {
+            rcEnc->rcSetDisplayColorTransform(rcEnc, displayInfo.hostDisplayId, colorTransform.data());
+        } else {
+            // TODO (b/420586022): Apply color transform with multiple passes
+        }
+    }
 
     const std::vector<Layer*> layers = display->getOrderedLayers();
     if (hostCompositionV2 || hostCompositionV1) {
@@ -675,9 +697,8 @@ HWC3::Error HostFrameComposer::presentDisplay(
 
         uint64_t sync_handle, thread_handle;
 
-        // We don't use rc command to sync if we are using virtio-gpu, which is
-        // proxied by minigbm.
-        bool useRcCommandToSync = !mIsMinigbm;
+        // We don't use rc command to sync if we are using virtio-gpu
+        const bool useRcCommandToSync = !isVirtioGPU;
 
         if (useRcCommandToSync) {
             hostCon->lock();
