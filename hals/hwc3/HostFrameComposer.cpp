@@ -509,7 +509,8 @@ HWC3::Error HostFrameComposer::presentDisplay(
     const bool isVirtioGPU = mIsMinigbm;
 
     // Virtio-gpu path doesn't support host side display color transform
-    const bool hostSupportsDisplayColorTransform = !isVirtioGPU;
+    // TODO (b/420586022): possibly redundant isVirtioGPU check, hasHWCColorTransform should be enough
+    const bool hostSupportsDisplayColorTransform = !isVirtioGPU && rcEnc->hasHWCColorTransform();
     if (display->hasColorTransform()) {
         std::array<float, 16> colorTransform = display->getColorTransform();
         DEBUG_LOG("%s: Color Transform: %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f",
