@@ -508,25 +508,6 @@ HWC3::Error HostFrameComposer::presentDisplay(
     // Virtio-gpu usage is proxied by minigbm
     const bool isVirtioGPU = mIsMinigbm;
 
-    // Virtio-gpu path doesn't support host side display color transform
-    // TODO (b/420586022): possibly redundant isVirtioGPU check, hasHWCColorTransform should be enough
-    const bool hostSupportsDisplayColorTransform = !isVirtioGPU && rcEnc->hasHWCColorTransform();
-    if (display->hasColorTransform()) {
-        std::array<float, 16> colorTransform = display->getColorTransform();
-        DEBUG_LOG("%s: Color Transform: %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f",
-                  __FUNCTION__,
-                  colorTransform[0], colorTransform[1], colorTransform[2], colorTransform[3],
-                  colorTransform[4], colorTransform[5], colorTransform[6], colorTransform[7],
-                  colorTransform[8], colorTransform[9], colorTransform[10], colorTransform[11],
-                  colorTransform[12], colorTransform[13], colorTransform[14], colorTransform[15]);
-
-        if (hostSupportsDisplayColorTransform) {
-            rcEnc->rcSetDisplayColorTransform(rcEnc, displayInfo.hostDisplayId, colorTransform.data());
-        } else {
-            // TODO (b/420586022): Apply color transform with multiple passes
-        }
-    }
-
     const std::vector<Layer*> layers = display->getOrderedLayers();
     if (hostCompositionV2 || hostCompositionV1) {
         uint32_t numLayer = 0;
@@ -675,8 +656,25 @@ HWC3::Error HostFrameComposer::presentDisplay(
             buffer = (void*)p2;
         }
 
+        // Virtio-gpu path doesn't support host side display color transform
+        // TODO (b/420586022): possibly redundant isVirtioGPU check, hasHWCColorTransform should be enough
+        const bool hostSupportsDisplayColorTransform = !isVirtioGPU && rcEnc->hasHWCColorTransform();
+
         ::android::base::unique_fd retire_fd;
         hostCon->lock();
+        if (hostSupportsDisplayColorTransform && display->hasColorTransform()) {
+            // TODO (b/420586022): Apply color transform with multiple passes when the host doesn't support it
+            std::array<float, 16> colorTransform = display->getColorTransform();
+            DEBUG_LOG("%s: Color Transform: %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f",
+                      __FUNCTION__,
+                      colorTransform[0], colorTransform[1], colorTransform[2], colorTransform[3],
+                      colorTransform[4], colorTransform[5], colorTransform[6], colorTransform[7],
+                      colorTransform[8], colorTransform[9], colorTransform[10], colorTransform[11],
+                      colorTransform[12], colorTransform[13], colorTransform[14], colorTransform[15]);
+
+            rcEnc->rcSetDisplayColorTransform(rcEnc, displayInfo.hostDisplayId, colorTransform.data());
+        }
+
         if (rcEnc->hasAsyncFrameCommands()) {
             if (mIsMinigbm) {
                 rcEnc->rcComposeAsyncWithoutPost(rcEnc, bufferSize, buffer);
