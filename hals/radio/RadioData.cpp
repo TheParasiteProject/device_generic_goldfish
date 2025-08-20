@@ -257,7 +257,7 @@ ScopedAStatus RadioData::setupDataCall(const int32_t serial,
 
 failed:     releaseId(cid);
             NOT_NULL(mRadioDataResponse)->setupDataCallResponse(
-                    makeRadioResponseInfo(serial, FAILURE(status)), {});
+                    makeRadioResponseInfo(serial, status), {});
             return status != RadioError::INTERNAL_ERR;
         }
 
