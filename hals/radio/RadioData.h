@@ -74,6 +74,14 @@ struct RadioData : public data::BnRadioData {
             const data::KeepaliveRequest& keepalive) override;
     ScopedAStatus stopKeepalive(int32_t serial, int32_t sessionHandle) override;
 
+    ScopedAStatus setUserDataEnabled(int32_t serial, bool enabled) override;
+    ScopedAStatus setUserDataRoamingEnabled(int32_t serial, bool enabled) override;
+
+    ScopedAStatus notifyImsDataNetwork(int32_t serial, AccessNetwork accessNetwork,
+                                       data::DataNetworkState dataNetworkState,
+                                       data::TransportType physicalTransportType,
+                                       int32_t physicalNetworkModemId) override;
+
     void atResponseSink(const AtResponsePtr& response);
     template <class IGNORE> void handleUnsolicited(const IGNORE&) {}
 
