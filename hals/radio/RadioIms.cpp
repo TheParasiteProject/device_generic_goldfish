@@ -79,6 +79,14 @@ ScopedAStatus RadioIms::updateImsCallStatus(
     return ScopedAStatus::ok();
 }
 
+ScopedAStatus RadioIms::updateAllowedServices(
+        const int32_t serial,
+        const std::vector<ims::ImsService>& /*imsServices*/) {
+    NOT_NULL(mRadioImsResponse)->updateAllowedServicesResponse(
+        makeRadioResponseInfoNOP(serial));
+    return ScopedAStatus::ok();
+}
+
 void RadioIms::atResponseSink(const AtResponsePtr& response) {}
 
 ScopedAStatus RadioIms::setResponseFunctions(

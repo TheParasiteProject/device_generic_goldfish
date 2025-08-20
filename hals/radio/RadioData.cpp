@@ -257,7 +257,7 @@ ScopedAStatus RadioData::setupDataCall(const int32_t serial,
 
 failed:     releaseId(cid);
             NOT_NULL(mRadioDataResponse)->setupDataCallResponse(
-                    makeRadioResponseInfo(serial, FAILURE(status)), {});
+                    makeRadioResponseInfo(serial, status), {});
             return status != RadioError::INTERNAL_ERR;
         }
 
@@ -440,6 +440,27 @@ ScopedAStatus RadioData::stopKeepalive(const int32_t serial,
     NOT_NULL(mRadioDataResponse)->stopKeepaliveResponse(
         makeRadioResponseInfo(serial, removed ?
             RadioError::NONE : FAILURE(RadioError::INVALID_ARGUMENTS)));
+    return ScopedAStatus::ok();
+}
+
+ScopedAStatus RadioData::setUserDataEnabled(int32_t serial, bool /*enabled*/) {
+    NOT_NULL(mRadioDataResponse)->setUserDataEnabledResponse(
+        makeRadioResponseInfoUnsupported(serial, FAILURE_DEBUG_PREFIX, __func__));
+    return ScopedAStatus::ok();
+}
+
+ScopedAStatus RadioData::setUserDataRoamingEnabled(int32_t serial, bool /*enabled*/) {
+    NOT_NULL(mRadioDataResponse)->setUserDataRoamingEnabledResponse(
+        makeRadioResponseInfoUnsupported(serial, FAILURE_DEBUG_PREFIX, __func__));
+    return ScopedAStatus::ok();
+}
+
+ScopedAStatus RadioData::notifyImsDataNetwork(int32_t serial, AccessNetwork /*accessNetwork*/,
+                                              data::DataNetworkState /*dataNetworkState*/,
+                                              data::TransportType /*physicalTransportType*/,
+                                              int32_t /*physicalNetworkModemId*/) {
+    NOT_NULL(mRadioDataResponse)->notifyImsDataNetworkResponse(
+        makeRadioResponseInfoNOP(serial));
     return ScopedAStatus::ok();
 }
 
