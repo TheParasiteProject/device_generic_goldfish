@@ -87,7 +87,6 @@ ScopedAStatus RadioModem::getImei(const int32_t serial) {
 }
 
 ScopedAStatus RadioModem::getHardwareConfig(const int32_t serial) {
-    static const char* const kFunc = __func__;
     mAtChannel->queueRequester([this, serial](const AtChannel::RequestPipe requestPipe) -> bool {
         using modem::HardwareConfig;
         using modem::HardwareConfigModem;
@@ -165,7 +164,6 @@ ScopedAStatus RadioModem::getModemStackStatus(const int32_t serial) {
 }
 
 ScopedAStatus RadioModem::getRadioCapability(const int32_t serial) {
-    static const char* const kFunc = __func__;
     mAtChannel->queueRequester([this, serial](const AtChannel::RequestPipe requestPipe) -> bool {
         using modem::RadioCapability;
         RadioCapability cap;
@@ -221,8 +219,8 @@ ScopedAStatus RadioModem::setRadioCapability(const int32_t serial,
 }
 
 ScopedAStatus RadioModem::setRadioPower(const int32_t serial, const bool powerOn,
-                                        const bool forEmergencyCall,
-                                        const bool preferredForEmergencyCall) {
+                                        const bool /*forEmergencyCall*/,
+                                        const bool /*preferredForEmergencyCall*/) {
     mAtChannel->queueRequester([this, serial, powerOn]
                                (const AtChannel::RequestPipe requestPipe) -> bool {
         if (setRadioPowerImpl(requestPipe, powerOn)) {
@@ -285,7 +283,6 @@ ScopedAStatus RadioModem::setResponseFunctions(
 std::pair<RadioError, uint32_t> RadioModem::getSupportedRadioTechs(
             const AtChannel::RequestPipe requestPipe,
             AtChannel::Conversation& atConversation) {
-    using ParseError = AtResponse::ParseError;
     using CTEC = AtResponse::CTEC;
     using ratUtils::ModemTechnology;
 
