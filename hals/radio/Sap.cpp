@@ -25,7 +25,7 @@ namespace hardware {
 namespace radio {
 namespace implementation {
 
-Sap::Sap(std::shared_ptr<AtChannel> atChannel) {}
+Sap::Sap(std::shared_ptr<AtChannel> /*atChannel*/) {}
 
 ScopedAStatus Sap::apduReq(const int32_t serial, sap::SapApduType /*type*/,
                            const std::vector<uint8_t>& /*command*/) {

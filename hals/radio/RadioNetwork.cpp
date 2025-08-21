@@ -372,9 +372,9 @@ void setAccessTechnologySpecificInfo(
     case RadioTechnology::NR: {
             EutranRegistrationInfo eri = {
                 .nrIndicators = {
-                    .isNrAvailable = true,
-                    .isDcNrRestricted = false,
                     .isEndcAvailable = false,
+                    .isDcNrRestricted = false,
+                    .isNrAvailable = true,
                 },
             };
 
