@@ -1128,12 +1128,14 @@ ScopedAStatus RadioNetwork::setSystemSelectionChannels(const int32_t serial,
 }
 
 ScopedAStatus RadioNetwork::startNetworkScan(const int32_t serial,
-                                             const network::NetworkScanRequest& /*request*/) {
+                                             const network::NetworkScanRequest& request) {
     using network::NetworkScanResult;
 
+    const RadioError result = validateNetworkScanRequest(request);
+
     NOT_NULL(mRadioNetworkResponse)->startNetworkScanResponse(
-        makeRadioResponseInfoNOP(serial));
-    if (mRadioNetworkIndication) {
+        makeRadioResponseInfo(serial, result));
+    if ((result == RadioError::NONE) && mRadioNetworkIndication) {
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(2000ms);
 
@@ -1551,6 +1553,115 @@ ScopedAStatus RadioNetwork::setResponseFunctions(
     }
 
     return ScopedAStatus::ok();
+}
+
+RadioError RadioNetwork::validateNetworkScanRequest(const network::NetworkScanRequest& req) {
+    using network::NetworkScanRequest;
+
+    switch (req.type) {
+    case NetworkScanRequest::SCAN_TYPE_ONE_SHOT:
+        break;
+
+    case NetworkScanRequest::SCAN_TYPE_PERIODIC:
+        if ((req.interval < NetworkScanRequest::SCAN_INTERVAL_RANGE_MIN) ||
+                (req.interval > NetworkScanRequest::SCAN_INTERVAL_RANGE_MAX)) {
+            return RadioError::INVALID_ARGUMENTS;
+        }
+        break;
+
+    default:
+        return RadioError::INVALID_ARGUMENTS;
+    }
+
+    if ((req.maxSearchTime < NetworkScanRequest::MAX_SEARCH_TIME_RANGE_MIN) ||
+            (req.maxSearchTime > NetworkScanRequest::MAX_SEARCH_TIME_RANGE_MAX)) {
+        return RadioError::INVALID_ARGUMENTS;
+    }
+
+
+    if (req.incrementalResults &&
+            ((req.incrementalResultsPeriodicity < NetworkScanRequest::INCREMENTAL_RESULTS_PREIODICITY_RANGE_MIN) ||
+            (req.incrementalResultsPeriodicity > NetworkScanRequest::INCREMENTAL_RESULTS_PREIODICITY_RANGE_MAX))) {
+        return RadioError::INVALID_ARGUMENTS;
+    }
+
+
+    if (req.specifiers.empty()) {
+        return RadioError::INVALID_ARGUMENTS;
+    }
+
+    using network::EutranBands;
+    using network::RadioAccessSpecifier;
+    using network::RadioAccessSpecifierBands;
+
+    for (const RadioAccessSpecifier& specifier : req.specifiers) {
+        switch (specifier.accessNetwork) {
+        case AccessNetwork::GERAN:
+            if (specifier.bands.getTag() != RadioAccessSpecifierBands::geranBands) {
+                return RadioError::INVALID_ARGUMENTS;
+            }
+            if (specifier.bands.get<RadioAccessSpecifierBands::geranBands>().empty()) {
+                return RadioError::INVALID_ARGUMENTS;
+            }
+            break;
+
+        case AccessNetwork::UTRAN:
+            if (specifier.bands.getTag() != RadioAccessSpecifierBands::utranBands) {
+                return RadioError::INVALID_ARGUMENTS;
+            }
+            if (specifier.bands.get<RadioAccessSpecifierBands::utranBands>().empty()) {
+                return RadioError::INVALID_ARGUMENTS;
+            }
+            break;
+
+        case AccessNetwork::EUTRAN:
+            if (specifier.bands.getTag() != RadioAccessSpecifierBands::eutranBands) {
+                return RadioError::INVALID_ARGUMENTS;
+            }
+            if (specifier.bands.get<RadioAccessSpecifierBands::eutranBands>().empty()) {
+                return RadioError::INVALID_ARGUMENTS;
+            }
+            for (const EutranBands band : specifier.bands.get<RadioAccessSpecifierBands::eutranBands>()) {
+                // see radio_network_test.cpp
+                switch (band) {
+                case EutranBands::BAND_17:
+                    for (const int channel : specifier.channels) {
+                        switch (channel) {
+                        case 1:
+                        case 2:
+                            return RadioError::INVALID_ARGUMENTS;
+
+                        default:
+                            break;
+                        }
+                    }
+                    break;
+
+                case EutranBands::BAND_20:
+                    for (const int channel : specifier.channels) {
+                        switch (channel) {
+                        case 128:
+                        case 129:
+                            return RadioError::INVALID_ARGUMENTS;
+
+                        default:
+                            break;
+                        }
+                    }
+                    break;
+
+                default:
+                    break;
+                }
+            }
+            break;
+
+        default:
+            return RadioError::INVALID_ARGUMENTS;
+        }
+    }
+
+    return RadioError::NONE;
 }
 
 /************************* deprecated *************************/

@@ -117,6 +117,8 @@ struct RadioNetwork : public network::BnRadioNetwork {
             const std::shared_ptr<network::IRadioNetworkIndication>& radioNetworkIndication) override;
 
 private:
+    static RadioError validateNetworkScanRequest(const network::NetworkScanRequest&);
+
     const std::shared_ptr<AtChannel> mAtChannel;
     AtChannel::Conversation mAtConversation;
     std::shared_ptr<network::IRadioNetworkResponse> mRadioNetworkResponse;
