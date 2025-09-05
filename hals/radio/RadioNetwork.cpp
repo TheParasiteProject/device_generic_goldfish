@@ -1158,16 +1158,30 @@ ScopedAStatus RadioNetwork::supplyNetworkDepersonalization(const int32_t serial,
 }
 
 ScopedAStatus RadioNetwork::setUsageSetting(const int32_t serial,
-                                            const network::UsageSetting /*usageSetting*/) {
+                                            const network::UsageSetting usageSetting) {
+    using network::UsageSetting;
+
+    RadioError result;
+    switch (usageSetting) {
+    case UsageSetting::VOICE_CENTRIC:
+    case UsageSetting::DATA_CENTRIC:
+        mUsageSetting = usageSetting;
+        result = RadioError::NONE;
+        break;
+
+    default:
+        result = RadioError::INVALID_ARGUMENTS;
+        break;
+    }
+
     NOT_NULL(mRadioNetworkResponse)->setUsageSettingResponse(
-            makeRadioResponseInfoNOP(serial));
+            makeRadioResponseInfo(serial, result));
     return ScopedAStatus::ok();
 }
 
 ScopedAStatus RadioNetwork::getUsageSetting(const int32_t serial) {
     NOT_NULL(mRadioNetworkResponse)->getUsageSettingResponse(
-            makeRadioResponseInfo(serial),
-            network::UsageSetting::VOICE_CENTRIC);
+            makeRadioResponseInfo(serial), mUsageSetting);
     return ScopedAStatus::ok();
 }
 
