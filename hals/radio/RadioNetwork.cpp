@@ -1063,6 +1063,9 @@ ScopedAStatus RadioNetwork::setNetworkSelectionModeManual(const int32_t serial,
             // good
         } else if (const CmeError* cmeError = response->get_if<CmeError>()) {
             status = cmeError->getErrorAndLog(FAILURE_DEBUG_PREFIX, kFunc, __LINE__);
+            if (status == RadioError::NO_NETWORK_FOUND) {
+                status = RadioError::INVALID_ARGUMENTS;
+            }
         } else {
             response->unexpected(FAILURE_DEBUG_PREFIX, kFunc);
         }
