@@ -984,14 +984,20 @@ ScopedAStatus RadioNetwork::setIndicationFilter(const int32_t serial,
 
 ScopedAStatus RadioNetwork::setLinkCapacityReportingCriteria(const int32_t serial,
                                                              const int32_t /*hysteresisMs*/,
-                                                             const int32_t /*hysteresisDlKbps*/,
-                                                             const int32_t /*hysteresisUlKbps*/,
+                                                             const int32_t hysteresisDlKbps,
+                                                             const int32_t hysteresisUlKbps,
                                                              const std::vector<int32_t>& /*thresholdsDownlinkKbps*/,
                                                              const std::vector<int32_t>& /*thresholdsUplinkKbps*/,
                                                              const AccessNetwork /*accessNetwork*/) {
-    NOT_NULL(mRadioNetworkResponse)->setLinkCapacityReportingCriteriaResponse(
-            makeRadioResponseInfoNOP(serial));
+    RadioError result = RadioError::NONE;
 
+    // This is what the previous HAL implementation did.
+    if ((hysteresisDlKbps >= 5000) || (hysteresisUlKbps >= 1000)) {
+        result = RadioError::INVALID_ARGUMENTS;
+    }
+
+    NOT_NULL(mRadioNetworkResponse)->setLinkCapacityReportingCriteriaResponse(
+            makeRadioResponseInfo(serial, result));
     return ScopedAStatus::ok();
 }
 
