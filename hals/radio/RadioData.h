@@ -93,6 +93,7 @@ struct RadioData : public data::BnRadioData {
 private:
     int32_t allocateId();
     void releaseId(int32_t cid);
+    RadioError validateKeepaliveRequest(const data::KeepaliveRequest& keepaliveReq) const;
 
     std::vector<data::SetupDataCallResult> getDataCalls() const;
 
