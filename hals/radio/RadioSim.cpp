@@ -1177,6 +1177,12 @@ ScopedAStatus RadioSim::requestIccSimAuthentication(const int32_t serial,
 
 ScopedAStatus RadioSim::sendEnvelope(const int32_t serial,
                                      const std::string& contents) {
+    if (contents.empty()) {
+        NOT_NULL(mRadioSimResponse)->sendEnvelopeResponse(
+            makeRadioResponseInfo(serial, RadioError::INVALID_ARGUMENTS), {});
+        return ScopedAStatus::ok();
+    }
+
     static const char* const kFunc = __func__;
     mAtChannel->queueRequester([this, serial, contents]
                                (const AtChannel::RequestPipe requestPipe) -> bool {
@@ -1216,6 +1222,12 @@ ScopedAStatus RadioSim::sendEnvelopeWithStatus(const int32_t serial,
 
 ScopedAStatus RadioSim::sendTerminalResponseToSim(const int32_t serial,
                                                   const std::string& commandResponse) {
+    if (commandResponse.empty()) {
+        NOT_NULL(mRadioSimResponse)->sendTerminalResponseToSimResponse(
+                makeRadioResponseInfo(serial, RadioError::INVALID_ARGUMENTS));
+        return ScopedAStatus::ok();
+    }
+
     static const char* const kFunc = __func__;
     mAtChannel->queueRequester([this, serial, commandResponse]
                                (const AtChannel::RequestPipe requestPipe) -> bool {
