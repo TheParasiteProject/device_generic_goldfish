@@ -375,50 +375,32 @@ ScopedAStatus RadioSim::enableUiccApplications(const int32_t serial, const bool 
 }
 
 ScopedAStatus RadioSim::getAllowedCarriers(const int32_t serial) {
-    static const char* const kFunc = __func__;
-    mAtChannel->queueRequester([this, serial](const AtChannel::RequestPipe requestPipe) -> bool {
-        using sim::CarrierInfo;
-        using sim::CarrierRestrictions;
-        using sim::SimLockMultiSimPolicy;
-        using CmeError = AtResponse::CmeError;
-        using COPS = AtResponse::COPS;
+    // This is how it was done in the previous implementation.
+    using sim::Carrier;
+    using sim::CarrierInfo;
+    using sim::CarrierRestrictions;
 
-        RadioError status = RadioError::NONE;
-        CarrierRestrictions carrierRestrictions = {
-            .allowedCarriersPrioritized = true,
-        };
+    Carrier allowedCarrier = {
+        .mcc = "123",
+        .mnc = "456",
+        .matchType = Carrier::MATCH_TYPE_ALL,
+    };
 
-        const AtResponsePtr response =
-            mAtConversation(requestPipe, atCmds::getOperator,
-                            [](const AtResponse& response) -> bool {
-                                return response.holds<COPS>() || response.holds<CmeError>();
-                            });
-        if (!response || response->isParseError()) {
-            status = FAILURE(RadioError::INTERNAL_ERR);
-        } else if (const COPS* cops = response->get_if<COPS>()) {
-            if ((cops->operators.size() == 1) && (cops->operators[0].isCurrent())) {
-                const COPS::OperatorInfo& current = cops->operators[0];
-                CarrierInfo ci = {
-                    .mcc = current.mcc(),
-                    .mnc = current.mnc(),
-                };
+    CarrierInfo allowedCarrierInfo = {
+        .mcc = allowedCarrier.mcc,
+        .mnc = allowedCarrier.mnc,
+    };
 
-                carrierRestrictions.allowedCarrierInfoList.push_back(std::move(ci));
-            } else {
-                response->unexpected(FAILURE_DEBUG_PREFIX, __func__);
-            }
-        } else if (const CmeError* cmeError = response->get_if<CmeError>()) {
-            status = cmeError->getErrorAndLog(FAILURE_DEBUG_PREFIX, kFunc, __LINE__);
-        } else {
-            response->unexpected(FAILURE_DEBUG_PREFIX, __func__);
-        }
+    CarrierRestrictions carrierRestrictions = {
+        .allowedCarriers = { std::move(allowedCarrier) },
+        .allowedCarriersPrioritized = true,
+        .allowedCarrierInfoList = { std::move(allowedCarrierInfo) },
+    };
 
-        NOT_NULL(mRadioSimResponse)->getAllowedCarriersResponse(
-            makeRadioResponseInfo(serial, status),
+    NOT_NULL(mRadioSimResponse)->getAllowedCarriersResponse(
+            makeRadioResponseInfo(serial),
             std::move(carrierRestrictions),
-            SimLockMultiSimPolicy::NO_MULTISIM_POLICY);
-        return status != RadioError::INTERNAL_ERR;
-    });
+            sim::SimLockMultiSimPolicy::NO_MULTISIM_POLICY);
 
     return ScopedAStatus::ok();
 }
