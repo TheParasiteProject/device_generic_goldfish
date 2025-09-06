@@ -306,14 +306,17 @@ RadioSim::RadioSim(std::shared_ptr<AtChannel> atChannel) : mAtChannel(std::move(
 ScopedAStatus RadioSim::areUiccApplicationsEnabled(const int32_t serial) {
     using modem::RadioState;
 
-    RadioState radioState;
+    RadioError status;
     {
         std::lock_guard<std::mutex> lock(mMtx);
-        radioState = mRadioState;
+        if (mRadioState == RadioState::OFF) {
+            status = RadioError::RADIO_NOT_AVAILABLE;
+        } else if (mCardPowerState == sim::CardPowerState::POWER_DOWN) {
+            status = RadioError::INVALID_SIM_STATE;
+        } else {
+            status = RadioError::NONE;
+        }
     }
-
-    const RadioError status = (radioState == RadioState::ON) ?
-        RadioError::NONE : RadioError::RADIO_NOT_AVAILABLE;
 
     NOT_NULL(mRadioSimResponse)->areUiccApplicationsEnabledResponse(
             makeRadioResponseInfo(serial, status), mUiccApplicationsEnabled);
@@ -658,6 +661,16 @@ ScopedAStatus RadioSim::getIccCardStatus(const int32_t serial) {
         }
 
         if (status == RadioError::NONE) {
+            {
+                std::lock_guard<std::mutex> lock(mMtx);
+                if (mCardPowerState == sim::CardPowerState::POWER_DOWN) {
+                    cardStatus.applications.clear();
+                    cardStatus.gsmUmtsSubscriptionAppIndex = -1;
+                    cardStatus.cdmaSubscriptionAppIndex = -1;
+                    cardStatus.imsSubscriptionAppIndex = -1;
+                }
+            }
+
             NOT_NULL(mRadioSimResponse)->getIccCardStatusResponse(
                     makeRadioResponseInfo(serial), std::move(cardStatus));
             return true;
@@ -1371,7 +1384,12 @@ ScopedAStatus RadioSim::setFacilityLockForApp(const int32_t serial,
 }
 
 ScopedAStatus RadioSim::setSimCardPower(const int32_t serial,
-                                        sim::CardPowerState /*powerUp*/) {
+                                        const sim::CardPowerState powerState) {
+    {
+        std::lock_guard<std::mutex> lock(mMtx);
+        mCardPowerState = powerState;
+    }
+
     NOT_NULL(mRadioSimResponse)->setSimCardPowerResponse(
         makeRadioResponseInfoNOP(serial));
     return ScopedAStatus::ok();
@@ -1479,6 +1497,9 @@ void RadioSim::handleUnsolicited(const AtResponse::CFUN& cfun) {
         std::lock_guard<std::mutex> lock(mMtx);
         changed = mRadioState != cfun.state;
         mRadioState = cfun.state;
+        if (mRadioState == modem::RadioState::ON) {
+            mCardPowerState = sim::CardPowerState::POWER_UP;
+        }
     }
 
     if (changed && mRadioSimIndication) {
