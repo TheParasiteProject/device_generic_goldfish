@@ -405,7 +405,14 @@ ScopedAStatus RadioData::cancelHandover(const int32_t serial,
 }
 
 ScopedAStatus RadioData::startKeepalive(const int32_t serial,
-                                        const data::KeepaliveRequest& /*keepalive*/) {
+                                        const data::KeepaliveRequest& keepaliveReq) {
+    const RadioError keepAliveReqCheck = validateKeepaliveRequest(keepaliveReq);
+    if (keepAliveReqCheck != RadioError::NONE) {
+        NOT_NULL(mRadioDataResponse)->startKeepaliveResponse(
+            makeRadioResponseInfo(serial, keepAliveReqCheck), {});
+        return ScopedAStatus::ok();
+    }
+
     const int32_t sessionHandle = allocateId();
 
     {
@@ -490,6 +497,34 @@ int32_t RadioData::allocateId() {
 void RadioData::releaseId(const int32_t cid) {
     std::lock_guard<std::mutex> lock(mMtx);
     mIdAllocator.put(cid);
+}
+
+RadioError RadioData::validateKeepaliveRequest(const data::KeepaliveRequest& keepaliveReq) const {
+    using data::KeepaliveRequest;
+
+    switch (keepaliveReq.type) {
+    case KeepaliveRequest::TYPE_NATT_IPV4:
+        if ((keepaliveReq.sourceAddress.size() != 4) || (keepaliveReq.destinationAddress.size() != 4)) {
+            return RadioError::INVALID_ARGUMENTS;
+        }
+        break;
+
+    case KeepaliveRequest::TYPE_NATT_IPV6:
+        if ((keepaliveReq.sourceAddress.size() != 16) || (keepaliveReq.destinationAddress.size() != 16)) {
+            return RadioError::INVALID_ARGUMENTS;
+        }
+        break;
+
+    default:
+        return RadioError::REQUEST_NOT_SUPPORTED;
+    }
+
+    std::lock_guard<std::mutex> lock(mMtx);
+    if (!mDataCalls.count(keepaliveReq.cid)) {
+        return RadioError::INVALID_ARGUMENTS;
+    }
+
+    return RadioError::NONE;
 }
 
 std::vector<SetupDataCallResult> RadioData::getDataCalls() const {

@@ -131,6 +131,7 @@ private:
     AtResponse::CTZV    mCtzv;
     int64_t             mCtzvTimestamp;
     modem::RadioState   mRadioState = modem::RadioState::OFF;
+    network::UsageSetting mUsageSetting = network::UsageSetting::VOICE_CENTRIC;
     int                 mPrimaryBandwidth = 0;
     int                 mSecondaryBandwidth = 0;
     bool                mNullCipherAndIntegrityEnabled = false;
