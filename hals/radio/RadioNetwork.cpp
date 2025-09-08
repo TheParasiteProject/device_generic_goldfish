@@ -984,14 +984,20 @@ ScopedAStatus RadioNetwork::setIndicationFilter(const int32_t serial,
 
 ScopedAStatus RadioNetwork::setLinkCapacityReportingCriteria(const int32_t serial,
                                                              const int32_t /*hysteresisMs*/,
-                                                             const int32_t /*hysteresisDlKbps*/,
-                                                             const int32_t /*hysteresisUlKbps*/,
+                                                             const int32_t hysteresisDlKbps,
+                                                             const int32_t hysteresisUlKbps,
                                                              const std::vector<int32_t>& /*thresholdsDownlinkKbps*/,
                                                              const std::vector<int32_t>& /*thresholdsUplinkKbps*/,
                                                              const AccessNetwork /*accessNetwork*/) {
-    NOT_NULL(mRadioNetworkResponse)->setLinkCapacityReportingCriteriaResponse(
-            makeRadioResponseInfoNOP(serial));
+    RadioError result = RadioError::NONE;
 
+    // This is what the previous HAL implementation did.
+    if ((hysteresisDlKbps >= 5000) || (hysteresisUlKbps >= 1000)) {
+        result = RadioError::INVALID_ARGUMENTS;
+    }
+
+    NOT_NULL(mRadioNetworkResponse)->setLinkCapacityReportingCriteriaResponse(
+            makeRadioResponseInfo(serial, result));
     return ScopedAStatus::ok();
 }
 
@@ -1057,6 +1063,9 @@ ScopedAStatus RadioNetwork::setNetworkSelectionModeManual(const int32_t serial,
             // good
         } else if (const CmeError* cmeError = response->get_if<CmeError>()) {
             status = cmeError->getErrorAndLog(FAILURE_DEBUG_PREFIX, kFunc, __LINE__);
+            if (status == RadioError::NO_NETWORK_FOUND) {
+                status = RadioError::INVALID_ARGUMENTS;
+            }
         } else {
             response->unexpected(FAILURE_DEBUG_PREFIX, kFunc);
         }
@@ -1083,9 +1092,10 @@ ScopedAStatus RadioNetwork::setNrDualConnectivityState(const int32_t serial,
 }
 
 ScopedAStatus RadioNetwork::setSignalStrengthReportingCriteria(const int32_t serial,
-                                                               const std::vector<network::SignalThresholdInfo>& /*signalThresholdInfos*/) {
+                                                               const std::vector<network::SignalThresholdInfo>& signalThresholdInfos) {
     NOT_NULL(mRadioNetworkResponse)->setSignalStrengthReportingCriteriaResponse(
-            makeRadioResponseInfoNOP(serial));
+            makeRadioResponseInfo(serial,
+                                  validateSignalStrengthReportingCriteria(signalThresholdInfos)));
     return ScopedAStatus::ok();
 }
 
@@ -1657,6 +1667,20 @@ RadioError RadioNetwork::validateNetworkScanRequest(const network::NetworkScanRe
             break;
 
         default:
+            return RadioError::INVALID_ARGUMENTS;
+        }
+    }
+
+    return RadioError::NONE;
+}
+
+RadioError RadioNetwork::validateSignalStrengthReportingCriteria(
+        const std::vector<network::SignalThresholdInfo>& signalThresholdInfos) {
+    using network::SignalThresholdInfo;
+
+    for (const SignalThresholdInfo& sti : signalThresholdInfos) {
+        // This is what the previous HAL implementation did.
+        if (sti.hysteresisDb >= 10) {
             return RadioError::INVALID_ARGUMENTS;
         }
     }
