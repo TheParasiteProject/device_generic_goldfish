@@ -18,6 +18,7 @@
 
 #include <charconv>
 #include <format>
+#include <thread>
 
 #include "RadioModem.h"
 
@@ -235,6 +236,30 @@ ScopedAStatus RadioModem::setRadioPower(const int32_t serial, const bool powerOn
     return ScopedAStatus::ok();
 }
 
+ScopedAStatus RadioModem::nvResetConfig(const int32_t serial, const modem::ResetNvType resetNvType) {
+    if (resetNvType != modem::ResetNvType::RELOAD) {
+        NOT_NULL(mRadioModemResponse)->nvResetConfigResponse(
+            makeRadioResponseInfoDeprecated(serial));
+        return ScopedAStatus::ok();
+    }
+
+    mAtChannel->queueRequester([this, serial]
+                               (const AtChannel::RequestPipe requestPipe) -> bool {
+        using namespace std::chrono_literals;
+
+        setRadioPowerImpl(requestPipe, false);
+        std::this_thread::sleep_for(5s);
+        setRadioPowerImpl(requestPipe, true);
+
+        NOT_NULL(mRadioModemResponse)->nvResetConfigResponse(
+            makeRadioResponseInfo(serial));
+
+        return true;
+    });
+
+    return ScopedAStatus::ok();
+}
+
 ScopedAStatus RadioModem::responseAcknowledgement() {
     return ScopedAStatus::ok();
 }
@@ -356,12 +381,6 @@ ScopedAStatus RadioModem::getDeviceIdentity(const int32_t serial) {
 ScopedAStatus RadioModem::nvReadItem(const int32_t serial, modem::NvItem) {
     NOT_NULL(mRadioModemResponse)->nvReadItemResponse(
         makeRadioResponseInfoDeprecated(serial), "");
-    return ScopedAStatus::ok();
-}
-
-ScopedAStatus RadioModem::nvResetConfig(const int32_t serial, modem::ResetNvType) {
-    NOT_NULL(mRadioModemResponse)->nvResetConfigResponse(
-        makeRadioResponseInfoDeprecated(serial));
     return ScopedAStatus::ok();
 }
 
