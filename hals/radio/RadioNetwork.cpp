@@ -1062,16 +1062,29 @@ ScopedAStatus RadioNetwork::setNetworkSelectionModeManual(const int32_t serial,
             // good
         } else if (const CmeError* cmeError = response->get_if<CmeError>()) {
             status = cmeError->getErrorAndLog(FAILURE_DEBUG_PREFIX, kFunc, __LINE__);
-            if (status == RadioError::NO_NETWORK_FOUND) {
-                status = RadioError::INVALID_ARGUMENTS;
-            }
         } else {
             response->unexpected(FAILURE_DEBUG_PREFIX, kFunc);
         }
 
+        const RadioError responseStatus = (status == RadioError::NO_NETWORK_FOUND) ?
+                RadioError::INVALID_ARGUMENTS : status;
         NOT_NULL(mRadioNetworkResponse)->setNetworkSelectionModeManualResponse(
-            makeRadioResponseInfo(serial, status));
-        return status != RadioError::INTERNAL_ERR;
+            makeRadioResponseInfo(serial, responseStatus));
+
+        using namespace std::chrono_literals;
+
+        switch (status) {
+        case RadioError::NO_NETWORK_FOUND:
+            // Put the modem back to automatic, VtsHalRadioTargetTest is not happy otherwise.
+            requestPipe("AT+COPS=0");
+            [[fallthrough]];
+
+        case RadioError::INTERNAL_ERR:
+            return false;
+
+        default:
+            return true;
+        }
     });
 
     return ScopedAStatus::ok();
