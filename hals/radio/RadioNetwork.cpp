@@ -55,6 +55,7 @@ using network::CellInfoTdscdma;
 using network::CellInfoWcdma;
 using network::CellInfoRatSpecificInfo;
 using network::NgranBands;
+using network::NrVopsInfo;
 using network::OperatorInfo;
 using network::RegStateResult;
 using network::SignalStrength;
@@ -370,16 +371,14 @@ void setAccessTechnologySpecificInfo(
         break;
 
     case RadioTechnology::NR: {
-            EutranRegistrationInfo eri = {
-                .nrIndicators = {
-                    .isEndcAvailable = false,
-                    .isDcNrRestricted = false,
-                    .isNrAvailable = true,
-                },
+            NrVopsInfo nr = {
+                .vopsSupported = NrVopsInfo::VOPS_INDICATOR_VOPS_OVER_3GPP,
+                .emcSupported = NrVopsInfo::EMC_INDICATOR_NR_CONNECTED_TO_5GCN,
+                .emfSupported = NrVopsInfo::EMF_INDICATOR_NOT_SUPPORTED,
             };
 
             accessTechnologySpecificInfo->set<
-                AccessTechnologySpecificInfo::eutranInfo>(std::move(eri));
+                AccessTechnologySpecificInfo::ngranNrVopsInfo>(std::move(nr));
         }
         break;
 
