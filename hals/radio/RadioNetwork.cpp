@@ -55,6 +55,7 @@ using network::CellInfoTdscdma;
 using network::CellInfoWcdma;
 using network::CellInfoRatSpecificInfo;
 using network::NgranBands;
+using network::NrVopsInfo;
 using network::OperatorInfo;
 using network::RegStateResult;
 using network::SignalStrength;
@@ -370,16 +371,14 @@ void setAccessTechnologySpecificInfo(
         break;
 
     case RadioTechnology::NR: {
-            EutranRegistrationInfo eri = {
-                .nrIndicators = {
-                    .isEndcAvailable = false,
-                    .isDcNrRestricted = false,
-                    .isNrAvailable = true,
-                },
+            NrVopsInfo nr = {
+                .vopsSupported = NrVopsInfo::VOPS_INDICATOR_VOPS_OVER_3GPP,
+                .emcSupported = NrVopsInfo::EMC_INDICATOR_NR_CONNECTED_TO_5GCN,
+                .emfSupported = NrVopsInfo::EMF_INDICATOR_NOT_SUPPORTED,
             };
 
             accessTechnologySpecificInfo->set<
-                AccessTechnologySpecificInfo::eutranInfo>(std::move(eri));
+                AccessTechnologySpecificInfo::ngranNrVopsInfo>(std::move(nr));
         }
         break;
 
@@ -1063,16 +1062,29 @@ ScopedAStatus RadioNetwork::setNetworkSelectionModeManual(const int32_t serial,
             // good
         } else if (const CmeError* cmeError = response->get_if<CmeError>()) {
             status = cmeError->getErrorAndLog(FAILURE_DEBUG_PREFIX, kFunc, __LINE__);
-            if (status == RadioError::NO_NETWORK_FOUND) {
-                status = RadioError::INVALID_ARGUMENTS;
-            }
         } else {
             response->unexpected(FAILURE_DEBUG_PREFIX, kFunc);
         }
 
+        const RadioError responseStatus = (status == RadioError::NO_NETWORK_FOUND) ?
+                RadioError::INVALID_ARGUMENTS : status;
         NOT_NULL(mRadioNetworkResponse)->setNetworkSelectionModeManualResponse(
-            makeRadioResponseInfo(serial, status));
-        return status != RadioError::INTERNAL_ERR;
+            makeRadioResponseInfo(serial, responseStatus));
+
+        using namespace std::chrono_literals;
+
+        switch (status) {
+        case RadioError::NO_NETWORK_FOUND:
+            // Put the modem back to automatic, VtsHalRadioTargetTest is not happy otherwise.
+            requestPipe("AT+COPS=0");
+            [[fallthrough]];
+
+        case RadioError::INTERNAL_ERR:
+            return false;
+
+        default:
+            return true;
+        }
     });
 
     return ScopedAStatus::ok();
