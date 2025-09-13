@@ -344,13 +344,22 @@ bool RadioModem::setRadioPowerImpl(const AtChannel::RequestPipe requestPipe,
         }
     }
 
-    const std::string request = std::format("AT+CFUN={0:d}", powerOn ? 1 : 0);
-    if (!requestPipe(request)) {
+    AtResponsePtr response =
+        mAtConversation(requestPipe, std::format("AT+CFUN={0:d}", powerOn ? 1 : 0),
+                        [](const AtResponse& response) -> bool {
+                            return response.holds<AtResponse::OK>();
+                        });
+    if (!response) {
         return FAILURE(false);
     }
 
     // to broadcast CFUN from the listening thread
-    if (!requestPipe(atCmds::getModemPowerState)) {
+    response =
+        mAtConversation(requestPipe, atCmds::getModemPowerState,
+                        [](const AtResponse& response) -> bool {
+                            return response.holds<AtResponse::CFUN>();
+                        });
+    if (!response) {
         return FAILURE(false);
     }
 
